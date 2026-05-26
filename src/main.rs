@@ -65,6 +65,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO: Uncomment the lines below to pass the first stage
     if let Some(content) = response["choices"][0]["message"]["content"].as_str() {
         println!("{}", content);
+        // Iterate over tool calls
+        if let Some(tool_calls) = response["choices"][0]["message"]["tool_calls"].as_array() {
+            for tool_call in tool_calls {
+                // Identify the tool call and its arguments
+                if let Some(function) = tool_call["function"].as_object() {
+                    // Parse the tool call name and arguments
+                    if let Some(name) = function["name"].as_str() {
+                        println!("Tool call: {}", name);
+                    }
+                    if let Some(arguments) = function["arguments"].as_str() {
+                        println!("Arguments: {:?}", arguments);
+                    }
+                }
+            }
+        }
     }
 
     Ok(())
