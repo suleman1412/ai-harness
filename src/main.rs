@@ -1,6 +1,7 @@
 use async_openai::{Client, config::OpenAIConfig};
 use clap::Parser;
 use serde_json::{Value, json};
+use tokio::fs;
 use std::{env, process};
 
 #[derive(Parser)]
@@ -16,6 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let base_url = env::var("OPENROUTER_BASE_URL")
         .unwrap_or_else(|_| "https://openrouter.ai/api/v1".to_string());
+
 
     let api_key = env::var("OPENROUTER_API_KEY").unwrap_or_else(|_| {
         eprintln!("OPENROUTER_API_KEY is not set");
@@ -75,7 +77,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("Tool call: {}", name);
                     }
                     if let Some(arguments) = function["arguments"].as_str() {
-                        println!("Arguments: {:?}", arguments);
+                        let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
+                        if let Some(file_path) = parsed["file_path"].as_str() {
+                            let path = fs::read_to_string(file_path).await?;
+                            println!("{}", path)
+                        }
+                        println!("Arguments: {:?}", parsed);
                     }
                 }
             }
