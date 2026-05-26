@@ -65,28 +65,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("Logs from your program will appear here!");
 
     // TODO: Uncomment the lines below to pass the first stage
-    if let Some(content) = response["choices"][0]["message"]["content"].as_str() {
-        println!("{}", content);
-        // Iterate over tool calls
-        if let Some(tool_calls) = response["choices"][0]["message"]["tool_calls"].as_array() {
-            for tool_call in tool_calls {
-                // Identify the tool call and its arguments
-                if let Some(function) = tool_call["function"].as_object() {
-                    // Parse the tool call name and arguments
-                    if let Some(name) = function["name"].as_str() {
-                        println!("Tool call: {}", name);
+    
+    // Iterate over tool calls
+    if let Some(tool_calls) = response["choices"][0]["message"]["tool_calls"].as_array() {
+        for tool_call in tool_calls {
+            // Identify the tool call and its arguments
+            if let Some(function) = tool_call["function"].as_object() {
+                // Parse the tool call name and arguments
+                if let Some(name) = function["name"].as_str() {
+                    println!("Tool call: {}", name);
+                }
+                if let Some(arguments) = function["arguments"].as_str() {
+                    let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
+                    if let Some(file_path) = parsed["file_path"].as_str() {
+                        let path = fs::read_to_string(file_path).await?;
+                        println!("{}", path)
                     }
-                    if let Some(arguments) = function["arguments"].as_str() {
-                        let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
-                        if let Some(file_path) = parsed["file_path"].as_str() {
-                            let path = fs::read(file_path).await?;
-                            println!("{}", String::from_utf8_lossy(&path))
-                        }
-                        println!("Arguments: {:?}", parsed);
-                    }
+                    println!("Arguments: {:?}", parsed);
                 }
             }
         }
+    }
+    else if let Some(content) = response["choices"][0]["message"]["content"].as_str() {
+        println!("{}", content);
     }
 
     Ok(())
