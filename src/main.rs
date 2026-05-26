@@ -30,64 +30,72 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::with_config(config);
 
-    let mut history : Vec<Value> = Vec::new();
-    // #[allow(unused_variables)]
-    let response: Value = client
-        .chat()
-        .create_byot(json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": args.prompt
-                }
-            ],
-            "tools": [{
-              "type": "function",
-              "function": {
-                "name": "Read",
-                "description": "Read and return the contents of a file",
-                "parameters": {
-                  "type": "object",
-                  "properties": {
-                    "file_path": {
-                      "type": "string",
-                      "description": "The path to the file to read"
-                    }
-                  },
-                  "required": ["file_path"]
-                }
-              }
-            }],
-            "model": "anthropic/claude-haiku-4.5",
-        }))
-        .await?;
-    history.push(response["choices"][0]["message"].clone());
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    eprintln!("Logs from your program will appear here!");
+    let mut history : Vec<Value> = vec![json!({
+        "role": "user",
+        "content": &args.prompt
+    })];
 
-    // TODO: Uncomment the lines below to pass the first stage
-    
-    // Iterate over tool calls
-    if let Some(tool_calls) = response["choices"][0]["message"]["tool_calls"].as_array() {
-        for tool_call in tool_calls {
-            // Identify the tool call and its arguments
-            if let Some(function) = tool_call["function"].as_object() {
-                // Parse the tool call name and arguments
-                // if let Some(name) = function["name"].as_str() {
-                //     println!("Tool call: {}", name);
-                // }
-                if let Some(arguments) = function["arguments"].as_str() {
-                    let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
-                    if let Some(file_path) = parsed["file_path"].as_str() {
-                        let path = fs::read_to_string(file_path).await?;
-                        println!("{}", path)
+    loop {
+        // #[allow(unused_variables)]
+        let response: Value = client
+            .chat()
+            .create_byot(json!({
+                "messages": history,
+                "tools": [{
+                  "type": "function",
+                  "function": {
+                    "name": "Read",
+                    "description": "Read and return the contents of a file",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "file_path": {
+                          "type": "string",
+                          "description": "The path to the file to read"
+                        }
+                      },
+                      "required": ["file_path"]
+                    }
+                  }
+                }],
+                "model": "anthropic/claude-haiku-4.5",
+            }))
+            .await?;
+
+        eprintln!("Logs from your program will appear here!");
+
+        let msg = response["choices"][0]["message"].clone();
+        history.push(msg.clone());
+        // TODO: Uncomment the lines below to pass the first stage
+        // Iterate over tool calls
+        if let Some(tool_calls) = msg["tool_calls"].as_array() {
+            for tool_call in tool_calls {
+                // Identify the tool call and its arguments
+                if let Some(function) = tool_call["function"].as_object() {
+                    // Parse the tool call name and arguments
+                    // if let Some(name) = function["name"].as_str() {
+                    //     println!("Tool call: {}", name);
+                    // }
+                    if let Some(arguments) = function["arguments"].as_str() {
+                        let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
+                        
+                        if let Some(file_path) = parsed["file_path"].as_str() {
+                            let data = fs::read_to_string(file_path).await?;
+                            // println!("{}", data);
+                            history.push(json!({
+                                "role": "tool",
+                                "tool_call_id": tool_call["id"],
+                                "content": data
+                            }));
+                        }
                     }
                 }
             }
         }
-    }
-    else if let Some(content) = response["choices"][0]["message"]["content"].as_str() {
-        println!("{}", content);
+        else if let Some(content) = response["choices"][0]["message"]["content"].as_str() {
+            println!("{}", content);
+            break;
+        }
     }
 
     Ok(())
