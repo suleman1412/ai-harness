@@ -30,6 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::with_config(config);
 
+    let mut history : Vec<Value> = Vec::new();
     // #[allow(unused_variables)]
     let response: Value = client
         .chat()
@@ -60,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "model": "anthropic/claude-haiku-4.5",
         }))
         .await?;
-
+    history.push(response["choices"][0]["message"].clone());
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");
 
@@ -81,7 +82,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         let path = fs::read_to_string(file_path).await?;
                         println!("{}", path)
                     }
-                    // println!("Arguments: {:?}", parsed);
                 }
             }
         }
