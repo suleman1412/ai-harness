@@ -72,16 +72,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Identify the tool call and its arguments
             if let Some(function) = tool_call["function"].as_object() {
                 // Parse the tool call name and arguments
-                if let Some(name) = function["name"].as_str() {
-                    println!("Tool call: {}", name);
-                }
+                // if let Some(name) = function["name"].as_str() {
+                //     println!("Tool call: {}", name);
+                // }
                 if let Some(arguments) = function["arguments"].as_str() {
                     let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
                     if let Some(file_path) = parsed["file_path"].as_str() {
                         let path = fs::read_to_string(file_path).await?;
                         println!("{}", path)
                     }
-                    println!("Arguments: {:?}", parsed);
+                    // println!("Arguments: {:?}", parsed);
                 }
             }
         }
