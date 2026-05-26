@@ -82,7 +82,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 "tool_call_id": tool_call["id"],
                                 "content": data
                             }));
-                            eprintln!("OPENROUTER_API_KEY: {}", &api_key);
                         }
                     }
                 }
