@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })];
 
     loop {
-        // #[allow(unused_variables)]
+        // api call
         let response: Value = client
             .chat()
             .create_byot(json!({
@@ -66,7 +66,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let msg = response["choices"][0]["message"].clone();
         history.push(msg.clone());
-        // TODO: Uncomment the lines below to pass the first stage
         // Iterate over tool calls
         if let Some(tool_calls) = msg["tool_calls"].as_array() {
             for tool_call in tool_calls {
@@ -76,17 +75,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // if let Some(name) = function["name"].as_str() {
                     //     println!("Tool call: {}", name);
                     // }
-                    if let Some(arguments) = function["arguments"].as_str() {
-                        let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
-                        
-                        if let Some(file_path) = parsed["file_path"].as_str() {
-                            let data = fs::read_to_string(file_path).await?;
-                            // println!("{}", data);
-                            history.push(json!({
-                                "role": "tool",
-                                "tool_call_id": tool_call["id"],
-                                "content": data
-                            }));
+                    if let Some("Read") = function["name"].as_str() {
+                        if let Some(arguments) = function["arguments"].as_str() {
+                            let parsed: serde_json::Value = serde_json::from_str(arguments)?;
+                            
+                            if let Some(file_path) = parsed["file_path"].as_str() {
+                                let data = fs::read_to_string(file_path).await?;
+                                // println!("{}", data);
+                                history.push(json!({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call["id"],
+                                    "content": data
+                                }));
+                            }
                         }
                     }
                 }
