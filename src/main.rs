@@ -79,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(arguments) = function["arguments"].as_str() {
                         let parsed: serde_json::Value = serde_json::from_str(arguments).unwrap();
                         if let Some(file_path) = parsed["file_path"].as_str() {
-                            let path = fs::read_to_string(file_path).await?;
+                            let path = std::fs::read_to_string(file_path).unwrap();
                             println!("{}", path)
                         }
                         println!("Arguments: {:?}", parsed);
