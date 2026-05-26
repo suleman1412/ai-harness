@@ -57,6 +57,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                       "required": ["file_path"]
                     }
                   }
+                }, 
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "Write",
+                    "description": "Write content to a file",
+                    "parameters": {
+                      "type": "object",
+                      "required": ["file_path", "content"],
+                      "properties": {
+                        "file_path": {
+                          "type": "string",
+                          "description": "The path of the file to write to"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "The content to write to the file"
+                        }
+                      }
+                    }
+                  }
                 }],
                 "model": "anthropic/claude-haiku-4.5",
             }))
@@ -73,16 +94,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(function) = tool_call["function"].as_object() {
                     // Parse the tool call name and arguments
                     if let Some(arguments) = function["arguments"].as_str() {
-                        let parsed: serde_json::Value = serde_json::from_str(arguments)?;
-                        
-                        if let Some(file_path) = parsed["file_path"].as_str() {
-                            let data = fs::read_to_string(file_path).await?;
+                        if let Ok(data) = read_tool_call(arguments).await{
                             history.push(json!({
                                 "role": "tool",
                                 "tool_call_id": tool_call["id"],
                                 "content": data
                             }));
                         }
+                        // let parsed: serde_json::Value = serde_json::from_str(arguments)?;
+                        
+                        // if let Some(file_path) = parsed["file_path"].as_str() {
+                        //     let data = fs::read_to_string(file_path).await?;
+                        //     history.push(json!({
+                        //         "role": "tool",
+                        //         "tool_call_id": tool_call["id"],
+                        //         "content": data
+                        //     }));
+                        // }
                     }
                 }
             }
@@ -93,5 +121,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    Ok(())
+}
+
+
+async fn read_tool_call(arguments: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
+    if let Some(file_path) = parsed_args["file_path"].as_str() {
+        let data = fs::read_to_string(file_path).await?;
+        Ok(data)
+    } else {
+        Err("file_path doesnt exist".into())
+    }
+}
+async fn write_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
+    if let Ok(data) = read_tool_call(&parsed_args["file_path"].to_string()).await {
+
+    } else {
+        
+    }
     Ok(())
 }
