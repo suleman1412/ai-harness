@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = OpenAIConfig::new()
         .with_api_base(base_url)
-        .with_api_key(api_key);
+        .with_api_key(api_key.clone()ˀ);
 
     let client = Client::with_config(config);
 
@@ -82,6 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 "tool_call_id": tool_call["id"],
                                 "content": data
                             }));
+                            eprintln!("OPENROUTER_API_KEY: {}", &api_key[..4]);
                         }
                     }
                 }
