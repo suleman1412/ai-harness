@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = OpenAIConfig::new()
         .with_api_base(base_url)
-        .with_api_key(api_key.clone());
+        .with_api_key(api_key);
 
     let client = Client::with_config(config);
 
@@ -105,11 +105,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     } else if let Some("Write") = function["name"].as_str() {
                         if let Some(arguments) = function["arguments"].as_str() {
-                            if let Ok(data) = write_tool_call(arguments).await{
+                            if let Ok(_) = write_tool_call(arguments).await{
                                 history.push(json!({
                                     "role": "tool",
                                     "tool_call_id": tool_call["id"],
-                                    "content": "Created the file"
+                                    "content": "File written successfully"
                                 }));
                             }
                         }
@@ -129,18 +129,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn read_tool_call(arguments: &str) -> Result<String, Box<dyn std::error::Error>> {
     let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
-    let file_path = parsed_args["file_path"].as_str().unwrap();
-    let data = fs::read_to_string(file_path).await?;
-    Ok(data)
+    if let Some(file_path) = parsed_args["file_path"].as_str() {
+        let data = fs::read_to_string(file_path).await?;
+        Ok(data)
+    } else {
+        Err("file_path doesnt exist".into())
+    }
 }
 async fn write_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error>> {
     let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
-    if let Ok(_) = read_tool_call(arguments).await {
-        let content_of_file = parsed_args["content"].as_str().unwrap();
-        let file_path = parsed_args["file_path"].as_str().unwrap();
-        let data = fs::write(file_path, content_of_file).await.unwrap();
-        Ok(data)
-    } else {
-        Err("read failed".into())
+    let content_of_file = parsed_args["content"].as_str().unwrap();
+    let file_path = parsed_args["file_path"].as_str().unwrap();
+
+    if let Err(e) = read_tool_call(arguments).await {
+           eprintln!("Read_tool_call failed: {e}");
     }
+    let data = fs::write(file_path, content_of_file).await?;
+    Ok(data)
 }
