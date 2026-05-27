@@ -36,7 +36,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     })];
 
     loop {
-        // api call
         let response: Value = client
             .chat()
             .create_byot(json!({
@@ -78,13 +77,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                       }
                     }
                   }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "Bash",
+                    "description": "Execute a shell command",
+                    "parameters": {
+                      "type": "object",
+                      "required": ["command"],
+                      "properties": {
+                        "command": {
+                          "type": "string",
+                          "description": "The command to execute"
+                        }
+                      }
+                    }
+                  }
                 }],
                 "model": "anthropic/claude-haiku-4.5",
             }))
             .await?;
-
-        // eprintln!("Logs from your program will appear here!");
-
         let msg = response["choices"][0]["message"].clone();
         history.push(msg.clone());
         // Iterate over tool calls
@@ -110,6 +123,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     "role": "tool",
                                     "tool_call_id": tool_call["id"],
                                     "content": "File written successfully"
+                                }));
+                            }
+                        }
+                    } else if let Some("Bash") = function["name"].as_str() {
+                        if let Some(arguments) = function["arguments"].as_str() {
+                            if let Ok(_) = bash_tool_call(arguments).await {
+                                history.push(json!({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call["id"],
+                                    "content": "Command executed successfully"
                                 }));
                             }
                         }
@@ -146,4 +169,21 @@ async fn write_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Erro
     }
     let data = fs::write(file_path, content_of_file).await?;
     Ok(data)
+}
+
+async fn bash_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
+    if let Some(command) = parsed_args["command"].as_str() {
+        let output = std::process::Command::new("bash")
+            .arg("-c")
+            .arg(command)
+            .output()
+            .await?;
+        if !output.status.success() {
+            return Err(anyhow::anyhow!("Command failed: {}", String::from_utf8_lossy(&output.stderr)));
+        }
+        Ok(())
+    } else {
+        Err("command not found".into())
+    }
 }
