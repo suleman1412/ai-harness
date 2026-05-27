@@ -171,7 +171,7 @@ async fn write_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Erro
     Ok(data)
 }
 
-async fn bash_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn bash_tool_call(arguments: &str) -> Result<String, Box<dyn std::error::Error>> {
     let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
     if let Some(command) = parsed_args["command"].as_str() {
         let output = std::process::Command::new("bash")
@@ -182,7 +182,7 @@ async fn bash_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error
         if !output.status.success() {
             return Err("Command failed".into());
         }
-        Ok(())
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
         Err("command not found".into())
     }
