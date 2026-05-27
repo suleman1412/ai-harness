@@ -128,13 +128,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     } else if let Some("Bash") = function["name"].as_str() {
                         if let Some(arguments) = function["arguments"].as_str() {
-                            if let Ok(_) = bash_tool_call(arguments).await {
-                                history.push(json!({
-                                    "role": "tool",
-                                    "tool_call_id": tool_call["id"],
-                                    "content": "Command executed successfully"
-                                }));
-                            }
+                            let result = bash_tool_call(arguments).await;
+                            let content = match result {
+                                Ok(out) => out,
+                                Err(e) => format!("Error: {}", e),
+                            };
+                            history.push(json!({
+                                "role": "tool",
+                                "tool_call_id": tool_call["id"],
+                                "content": content
+                            }));
                         }
                     }
                 }
