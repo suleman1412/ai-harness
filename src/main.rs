@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }))
             .await?;
 
-        eprintln!("Logs from your program will appear here!");
+        // eprintln!("Logs from your program will appear here!");
 
         let msg = response["choices"][0]["message"].clone();
         history.push(msg.clone());
