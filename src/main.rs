@@ -93,24 +93,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Identify the tool call and its arguments
                 if let Some(function) = tool_call["function"].as_object() {
                     // Parse the tool call name and arguments
-                    if let Some(arguments) = function["arguments"].as_str() {
-                        if let Ok(data) = read_tool_call(arguments).await{
-                            history.push(json!({
-                                "role": "tool",
-                                "tool_call_id": tool_call["id"],
-                                "content": data
-                            }));
+                    if let Some("Read") = function["name"].as_str() {
+                        if let Some(arguments) = function["arguments"].as_str() {
+                            if let Ok(data) = read_tool_call(arguments).await{
+                                history.push(json!({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call["id"],
+                                    "content": data
+                                }));
+                            }
                         }
-                        // let parsed: serde_json::Value = serde_json::from_str(arguments)?;
-                        
-                        // if let Some(file_path) = parsed["file_path"].as_str() {
-                        //     let data = fs::read_to_string(file_path).await?;
-                        //     history.push(json!({
-                        //         "role": "tool",
-                        //         "tool_call_id": tool_call["id"],
-                        //         "content": data
-                        //     }));
-                        // }
+                    } else if let Some("Write") = function["name"].as_str() {
+                        if let Some(arguments) = function["arguments"].as_str() {
+                            if let Ok(data) = write_tool_call(arguments).await{
+                                history.push(json!({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call["id"],
+                                    "content": "Created the file"
+                                }));
+                            }
+                        }
                     }
                 }
             }
@@ -127,19 +129,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn read_tool_call(arguments: &str) -> Result<String, Box<dyn std::error::Error>> {
     let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
-    if let Some(file_path) = parsed_args["file_path"].as_str() {
-        let data = fs::read_to_string(file_path).await?;
-        Ok(data)
-    } else {
-        Err("file_path doesnt exist".into())
-    }
+    let file_path = parsed_args["file_path"].as_str().unwrap();
+    let data = fs::read_to_string(file_path).await?;
+    Ok(data)
 }
 async fn write_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error>> {
     let parsed_args: serde_json::Value = serde_json::from_str(arguments)?;
-    if let Ok(data) = read_tool_call(&parsed_args["file_path"].to_string()).await {
-
+    if let Ok(_) = read_tool_call(arguments).await {
+        let content_of_file = parsed_args["content"].as_str().unwrap();
+        let file_path = parsed_args["file_path"].as_str().unwrap();
+        let data = fs::write(file_path, content_of_file).await.unwrap();
+        Ok(data)
     } else {
-        
+        Err("read failed".into())
     }
-    Ok(())
 }
