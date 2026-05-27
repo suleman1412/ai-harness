@@ -178,9 +178,9 @@ async fn bash_tool_call(arguments: &str) -> Result<(), Box<dyn std::error::Error
             .arg("-c")
             .arg(command)
             .output()
-            .await?;
+            .unwrap();
         if !output.status.success() {
-            return Err(anyhow::anyhow!("Command failed: {}", String::from_utf8_lossy(&output.stderr)));
+            return Err("Command failed".into());
         }
         Ok(())
     } else {
