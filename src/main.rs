@@ -180,10 +180,10 @@ async fn bash_tool_call(arguments: &str) -> Result<String, Box<dyn std::error::E
         let output = std::process::Command::new("bash")
             .arg("-c")
             .arg(command)
-            .output()
-            .unwrap();
+            .output()?;
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         if !output.status.success() {
-            return Err("Command failed".into());
+            return Err(format!("Command failed: {stderr}").into());
         }
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
