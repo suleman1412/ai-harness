@@ -13,6 +13,8 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenvy::dotenv().ok();
+    
     let args = Args::parse();
 
     let base_url = env::var("OPENROUTER_BASE_URL")
@@ -23,6 +25,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("OPENROUTER_API_KEY is not set");
         process::exit(1);
     });
+
+    let model = env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "openrouter/free".to_string());
 
     let config = OpenAIConfig::new()
         .with_api_base(base_url)
@@ -95,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                   }
                 }],
-                "model": "anthropic/claude-haiku-4.5",
+                "model": model,
             }))
             .await?;
         let msg = response["choices"][0]["message"].clone();
